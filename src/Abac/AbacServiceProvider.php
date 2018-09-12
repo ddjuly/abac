@@ -60,8 +60,6 @@ class AbacServiceProvider extends ServiceProvider
      */
     public function provides()
     {
-        return [
-            'command.entrust.migration'
-        ];
+        return ['abac'];
     }
 }
