@@ -1,5 +1,5 @@
 {
     "name": "ddjuly/abac",
-    "type": "composer-plugin",
+    "type": "library",
     "require": {}
 }
