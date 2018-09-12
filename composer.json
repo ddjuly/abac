@@ -1,7 +1,10 @@
 {
     "name": "ddjuly/abac",
     "type": "library",
-    "require": {},
+    "require": {
+        "illuminate/support": "^5.5",
+        "illuminate/database": "^5.5"
+    },
 
     "autoload": {
         "psr-4": {"Abac\\": "src/Abac"}
