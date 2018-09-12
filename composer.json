@@ -1,5 +1,9 @@
 {
     "name": "ddjuly/abac",
     "type": "library",
-    "require": {}
+    "require": {},
+
+    "autoload": {
+        "psr-4": {"Abac\\": "src/Abac"}
+    }
 }
