@@ -14,4 +14,41 @@ class Abac {
 
     }
 
+
+    /**
+     * create role
+     * @permission
+     */
+    public function addRole() {
+
+    }
+
+
+    /**
+     * create permission
+     * @permission
+     */
+    public function addPermission() {
+
+    }
+
+
+    /**
+     *
+     */
+    public function relatePermission2Role() {
+
+    }
+
+
+    public function relateUser2Role() {
+
+    }
+
+
+    public function relateUser2Permission() {
+
+    }
+
+
 }
