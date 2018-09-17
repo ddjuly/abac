@@ -56,6 +56,12 @@ class Abac {
         return false;
     }
 
+
+    /**
+     * @permission
+     * @param $permission
+     * @return bool
+     */
     public function hasPermission($permission)
     {
         $user = $this->user();
