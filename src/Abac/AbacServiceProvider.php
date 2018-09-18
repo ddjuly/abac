@@ -34,7 +34,7 @@ class AbacServiceProvider extends ServiceProvider
 //        ]);
 
         // Register commands
-//        $this->commands('command.entrust.migration');
+        $this->commands('command.abac.create-table');
 
         // Register blade directives
         $this->bladeDirectives();
@@ -85,13 +85,22 @@ class AbacServiceProvider extends ServiceProvider
             return "<?php endif; // Abac::hasRole ?>";
         });
 
-        // Call to Entrust::can
+        // Call to Entrust::permission
         \Blade::directive('permission', function($expression) {
             return "<?php if (\\Abac::hasPermission({$expression})) : ?>";
         });
 
         \Blade::directive('endpermission', function($expression) {
             return "<?php endif; // Abac::hasPermission ?>";
+        });
+
+        // Call to Entrust::ability
+        \Blade::directive('ability', function($expression) {
+            return "<?php if (\\Abac::ability({$expression})) : ?>";
+        });
+
+        \Blade::directive('endability', function($expression) {
+            return "<?php endif; // Abac::ability ?>";
         });
     }
 

@@ -18,39 +18,95 @@ class Abac {
     public $app;
 
     /**
-     * @return void
+     * current user id
      */
-    public function __construct($app)
-    {
-        $this->app = $app;
-    }
+    public $userId;
+
+    private $isQuery = false;
+    private $roles = [];
+    private $rolePermissions = [];
+    private $userPermissions = [];
 
     /**
+     * @return void
+     */
+    public function __construct($app) {
+        $this->app = $app;
+        $this->userId = $this->app->auth->user()->id;
+    }
+
+
+    /**
+     * query all roles and permissions of this user
      * @permission
+     */
+    private function queryInfos() {
+        if (!$this->isQuery) {
+            $this->isQuery = true;
+            return;
+        }
+
+        $sql = "SELECT b.role_id, c.role_name, d.pid, e.pname, f.pid AS upid, g.pname AS upname FROM ".Config::get('abac.users', 'users')." a
+                LEFT JOIN ".Config::get('abac.abac_user_role', 'abac_user_role')." b ON a.id=b.user_id
+                LEFT JOIN ".Config::get('abac.abac_role', 'abac_role')." c ON b.role_id=c.role_id
+                LEFT JOIN ".Config::get('abac.abac_role_permission', 'abac_role_permission')." d ON c.role_id=d.role_id
+                LEFT JOIN ".Config::get('abac.abac_permission', 'abac_permission')." e ON d.pid=e.pid
+                LEFT JOIN ".Config::get('abac.abac_user_permission', 'abac_user_permission')." f ON a.id=f.user_id
+                LEFT JOIN ".Config::get('abac.abac_permission', 'abac_permission')." g ON f.pid=g.pid
+                WHERE a.id=:user_id
+                ";
+        $info = Helper::select_all($sql, ['user_id'=>$this->userId]);
+
+        foreach ($info as $val) {
+            $this->roles[$val['role_id']] = $val['role_name'];
+            $this->rolePermissions[$val['pid']] = $val['pname'];
+            $this->userPermissions[$val['upid']] = $val['upname'];
+        }
+    }
+
+
+    /**
      * @param $role int role_id or string role_name
      * @return bool
      */
     public function hasRole($role)
     {
-        $user = $this->user();
-        $user_id = $user->id;
+        $this->queryInfos();
 
-        $sql = "SELECT * FROM ".Config::get('abac.abac_user_role', 'abac_user_role')." a 
-                LEFT JOIN ".Config::get('abac.abac_role', 'abac_role')." b ON a.role_id=b.role_id
-                WHERE a.user_id=:user_id 
-                ".
-                value(function () use ($role) {
-                    if (is_string($role)) {
-                        return " AND b.role_name=:role ";
-                    } else if (is_int($role)) {
-                        return " AND b.role_id=:role ";
-                    }
-                })
-                ."
-                ";
-        $row = Helper::select_row($sql, ['user_id' => $user_id, 'role' => $role]);
-        if ($row) {
-            return true;
+        if (is_string($role)) {
+            return in_array($role, $this->roles);
+        } else if (is_int($role)) {
+            return array_key_exists($role, $this->roles);
+        }
+
+        return false;
+    }
+
+
+    /**
+     * @param $permission
+     * @return bool
+     */
+    public function hasPermission($permission)
+    {
+        $this->queryInfos();
+
+        if (is_string($permission)) {
+            $b = in_array($permission, $this->userPermissions);
+            if ($b) {
+                return true;
+            } else {
+                $b = in_array($permission, $this->rolePermissions);
+                return $b;
+            }
+        } else if (is_int($permission)) {
+            $b = array_key_exists($permission, $this->roles);
+            if ($b) {
+                return true;
+            } else {
+                $b = array_key_exists($permission, $this->rolePermissions);
+                return $b;
+            }
         }
 
         return false;
@@ -60,60 +116,25 @@ class Abac {
     /**
      * @permission
      * @param $permission
-     * @return bool
      */
-    public function hasPermission($permission)
-    {
-        $user = $this->user();
-        $user_id = $user->id;
+    public function ability($permissions) {
+        $this->queryInfos();
 
-        $sql = "SELECT * FROM ".Config::get('abac.abac_user_permission', 'abac_user_permission')." a 
-                LEFT JOIN ".Config::get('abac.abac_permission', 'abac_permission')." b ON a.pid=b.pid 
-                WHERE a.user_id=:user_id 
-                ".
-                value(function () use ($permission) {
-                    if (is_string($permission)) {
-                        return " AND b.pname=:permission ";
-                    } else if (is_int($permission)) {
-                        return " AND b.pid=:permission ";
-                    }
-                })
-                ."
-                ";
-        $row = Helper::select_row($sql, ['user_id' => $user_id, 'permission' => $permission]);
-        if ($row) {
-            return true;
-        }
+        $arr = explode('|', $permissions);
 
-        $sql = "SELECT * FROM ".Config::get('abac.abac_user_role', 'abac_user_role')." a 
-                LEFT JOIN ".Config::get('abac.abac_role', 'abac_role')." b ON a.role_id=b.role_id 
-                LEFT JOIN ".Config::get('abac.abac_role_permission', 'abac_role_permission')." c ON b.role_id=c.role_id 
-                LEFT JOIN ".Config::get('abac.abac_permission', 'abac_permission')." d ON c.pid=d.pid 
-                WHERE a.user_id=:user_id 
-                ".
-                value(function () use ($permission) {
-                    if (is_string($permission)) {
-                        return " AND d.pname=:permission ";
-                    } else if (is_int($permission)) {
-                        return " AND d.pid=:permission ";
-                    }
-                })
-                ."
-                ";
-        $row = Helper::select_row($sql, ['user_id' => $user_id, 'permission' => $permission]);
-        if ($row) {
-            return true;
+        foreach ($arr as $val) {
+            $b = in_array($val, $this->userPermissions);
+            if ($b) {
+                return true;
+            } else {
+                $b = in_array($val, $this->rolePermissions);
+                if ($b) {
+                    return true;
+                }
+            }
         }
 
         return false;
-    }
-
-
-    /**
-     */
-    public function user()
-    {
-        return $this->app->auth->user();
     }
 
 

@@ -3,7 +3,8 @@
     "type": "library",
     "require": {
         "illuminate/support": "^5.5",
-        "illuminate/database": "^5.5"
+        "illuminate/database": "^5.5",
+        "illuminate/console": "^5.5"
     },
 
     "autoload": {
