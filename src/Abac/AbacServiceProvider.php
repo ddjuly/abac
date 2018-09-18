@@ -10,6 +10,7 @@ namespace Abac;
  * @package Zizaco\Entrust
  */
 
+use Abac\command\CreateTableCommand;
 use Illuminate\Support\ServiceProvider;
 
 class AbacServiceProvider extends ServiceProvider
@@ -34,7 +35,7 @@ class AbacServiceProvider extends ServiceProvider
 //        ]);
 
         // Register commands
-        $this->commands('command.abac:create-table');
+        $this->commands('command.abac.create-table');
 
         // Register blade directives
         $this->bladeDirectives();
@@ -53,6 +54,9 @@ class AbacServiceProvider extends ServiceProvider
 
         $this->app->alias('abac', 'Abac\Abac');
 
+        $this->app->singleton('command.abac.create-table', function ($app) {
+            return new CreateTableCommand();
+        });
     }
 
 
