@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Config;
 
 class Abac {
 
+    const DELIMITER = '|';
+
     /**
      * Laravel application
      */
@@ -46,7 +48,7 @@ class Abac {
             return;
         }
 
-        $sql = "SELECT b.role_id, c.role_name, d.pid, e.pname, f.pid AS upid, g.pname AS upname FROM ".Config::get('abac.users', 'users')." a
+        $sql = "SELECT b.role_id, c.role_name, d.pid, e.pname, f.pid AS upid, g.pname AS upname FROM ".Config::get('abac.abac_users', 'users')." a
                 LEFT JOIN ".Config::get('abac.abac_user_role', 'abac_user_role')." b ON a.id=b.user_id
                 LEFT JOIN ".Config::get('abac.abac_role', 'abac_role')." c ON b.role_id=c.role_id
                 LEFT JOIN ".Config::get('abac.abac_role_permission', 'abac_role_permission')." d ON c.role_id=d.role_id
@@ -117,21 +119,60 @@ class Abac {
      * @permission
      * @param $permission
      */
-    public function ability($permissions) {
+    public function ability($roles = null, $permissions = null, $validateAll = false) {
         $this->queryInfos();
 
-        $arr = explode('|', $permissions);
+        if ($roles) {
+            if (is_array($roles)) {
+                $rarr = $roles;
+            } else if (is_string($roles)) {
+                $rarr = explode(self::DELIMITER, $roles);
+            }
 
-        foreach ($arr as $val) {
-            $b = in_array($val, $this->userPermissions);
-            if ($b) {
-                return true;
-            } else {
-                $b = in_array($val, $this->rolePermissions);
+            foreach ($rarr as $rval) {
+                $b = in_array($rval, $this->roles);
                 if ($b) {
-                    return true;
+                    if (!$validateAll) {
+                        return true;
+                    }
+                } else {
+                    if ($validateAll) {
+                        return false;
+                    }
                 }
             }
+        }
+
+        if ($permissions) {
+            if (is_array($permissions)) {
+                $parr = $permissions;
+            } else if (is_string($permissions)) {
+                $parr = explode(self::DELIMITER, $permissions);
+            }
+
+            foreach ($parr as $pval) {
+                $b = in_array($pval, $this->userPermissions);
+                if ($b) {
+                    if (!$validateAll) {
+                        return true;
+                    }
+                } else {
+                    $b = in_array($pval, $this->rolePermissions);
+                    if ($b) {
+                        if (!$validateAll) {
+                            return true;
+                        }
+                    } else {
+                        if ($validateAll) {
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+
+        if ($validateAll) {
+            return true;
         }
 
         return false;

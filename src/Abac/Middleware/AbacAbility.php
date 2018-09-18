@@ -37,31 +37,24 @@ class AbacAbility
 	 * @param bool $validateAll
 	 * @return mixed
 	 */
-	public function handle($request, Closure $next, $roles, $permissions, $validateAll = false)
+	public function handle($request, Closure $next, $roles = null, $permissions = null, $validateAll = false)
 	{
-//        \Log::info($permission);
-//        if ($this->auth->guest() || !\Abac::hasPermission($permission)) {
-//            abort(404);
-//        }
-//        return $next($request);
+        if (!is_array($roles)) {
+            $roles = explode(self::DELIMITER, $roles);
+        }
 
+        if (!is_array($permissions)) {
+            $permissions = explode(self::DELIMITER, $permissions);
+        }
 
-		if (!is_array($roles)) {
-			$roles = explode(self::DELIMITER, $roles);
-		}
+        if (!is_bool($validateAll)) {
+            $validateAll = false;
+        }
 
-		if (!is_array($permissions)) {
-			$permissions = explode(self::DELIMITER, $permissions);
-		}
+        if ($this->auth->guest() || !\Abac::ability($roles, $permissions, $validateAll)) {
+            abort(403);
+        }
 
-		if (!is_bool($validateAll)) {
-			$validateAll = filter_var($validateAll, FILTER_VALIDATE_BOOLEAN);
-		}
-
-		if ($this->auth->guest() || !$request->user()->ability($roles, $permissions, [ 'validate_all' => $validateAll ])) {
-			abort(403);
-		}
-
-		return $next($request);
+        return $next($request);
 	}
 }
