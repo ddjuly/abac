@@ -34,7 +34,7 @@ class AbacServiceProvider extends ServiceProvider
 //        ]);
 
         // Register commands
-        $this->commands('command.abac.create-table');
+        $this->commands('command.abac:create-table');
 
         // Register blade directives
         $this->bladeDirectives();
