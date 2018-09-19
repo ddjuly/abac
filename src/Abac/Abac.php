@@ -336,4 +336,148 @@ class Abac {
     }
 
 
+    /**
+     * delete role, and all of relationship will be delete.
+     * @permission
+     */
+    public function delRole($role) {
+        $role_id = $role;
+        if (is_string($role)) {
+            $role = Helper::model(Config::get('abac.abac_role', 'abac_role'))->where('role_name', $role)->first();
+            if (!$role) {
+                return false;
+            }
+            $role_id = $role->role_id;
+        } else {
+            $role = Helper::model(Config::get('abac.abac_role', 'abac_role'))->where('role_id', $role)->first();
+            if (!$role) {
+                return false;
+            }
+        }
+
+        try {
+            \DB::beginTransaction();
+            $b = $role->delete();
+            if (!$b) {
+                throw new \Exception();
+            }
+
+            Helper::model(Config::get('abac.abac_role_permission', 'abac_role_permission'))
+                ->where('role_id', $role_id)
+                ->delete();
+
+            Helper::model(Config::get('abac.abac_user_role', 'abac_user_role'))
+                ->where('role_id', $role_id)
+                ->delete();
+            DB::commit();
+
+            return true;
+        } catch (\Exception $e) {
+            DB::rollback();
+        }
+
+        return false;
+    }
+
+
+    /**
+     * delete permission
+     * @permission
+     */
+    public function delPermission($permission) {
+        $pid = $permission;
+        if (is_string($permission)) {
+            $permission = Helper::model(Config::get('abac.abac_permission', 'abac_permission'))
+                ->where('pname', $permission)
+                ->first();
+            if (!$permission) {
+                return false;
+            }
+            $pid = $permission->pid;
+        } else {
+            $permission = Helper::model(Config::get('abac.abac_permission', 'abac_permission'))
+                ->where('pid', $permission)
+                ->first();
+            if (!$permission) {
+                return false;
+            }
+        }
+
+        try {
+            \DB::beginTransaction();
+            $b = $permission->delete();
+            if (!$b) {
+                throw new \Exception();
+            }
+
+            Helper::model(Config::get('abac.abac_role_permission', 'abac_role_permission'))
+                ->where('pid', $pid)
+                ->delete();
+
+            Helper::model(Config::get('abac.abac_user_permission', 'abac_user_permission'))
+                ->where('pid', $pid)
+                ->delete();
+            DB::commit();
+
+            return true;
+        } catch (\Exception $e) {
+            DB::rollback();
+        }
+
+        return false;
+    }
+
+
+    public function removePermissionOfRole($permission, $role) {
+        if (is_string($permission)) {
+            $permission = Helper::model(Config::get('abac.abac_permission', 'abac_permission'))->where('pname', $permission)->first();
+            if (!$permission) {
+                return false;
+            }
+            $permission = $permission->pid;
+        }
+        if (is_string($role)) {
+            $role = Helper::model(Config::get('abac.abac_role', 'abac_role'))->where('role_name', $role)->first();
+            if (!$role) {
+                return false;
+            }
+            $role = $role->role_id;
+        }
+        return Helper::model(Config::get('abac.abac_role_permission', 'abac_role_permission'))
+            ->where('role_id', $role)
+            ->where('pid', $permission)
+            ->delete();
+    }
+
+
+    public function removePermissionOfUser($user_id, $permission) {
+        if (is_string($permission)) {
+            $permission = Helper::model(Config::get('abac.abac_permission', 'abac_permission'))->where('pname', $permission)->first();
+            if (!$permission) {
+                return false;
+            }
+            $permission = $permission->pid;
+        }
+        return Helper::model(Config::get('abac.abac_user_permission', 'abac_user_permission'))
+            ->where('user_id', $user_id)
+            ->where('pid', $permission)
+            ->delete();
+    }
+
+
+    public function removeRoleOfUser($user_id, $role) {
+        if (is_string($role)) {
+            $role = Helper::model(Config::get('abac.abac_role', 'abac_role'))->where('role_name', $role)->first();
+            if (!$role) {
+                return false;
+            }
+            $role = $role->role_id;
+        }
+        return Helper::model(Config::get('abac.abac_user_role', 'abac_user_role'))
+            ->where('user_id', $user_id)
+            ->where('role_id', $role)
+            ->delete();
+    }
+
+
 }

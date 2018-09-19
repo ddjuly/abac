@@ -30,8 +30,71 @@ php artisan abac.create-table
 ### 中间件使用
 ```
 'permission' => \Abac\Middleware\AbacPermission::class,
+'role' => \Abac\Middleware\AbacRole::class,
+'ability' => \Abac\Middleware\AbacAbility::class,
+```
+
+```
+// 路由
+Route::get('/home', 'HomeController@index')->name('home')->middleware("permission:权限名");
+Route::get('/home', 'HomeController@index')->name('home')->middleware("role:角色名");
+Route::get('/home', 'HomeController@index')->name('home')->middleware("ability:权限名");
 ```
 您也可以copy该中间件出来进行自定义，呵呵！
+
+### Laravel坑逼路由终极大法，特么我们路由文件一路达到1k行，哦不，是2k行，这个锅Laravel必须得背
+### 终极大法配合权限管理很容易达到高潮
+```
+Route::group(['prefix' => 'prefix'],function(){
+    if (strlen($_SERVER['REQUEST_URI']) < 4 || strpos($_SERVER['REQUEST_URI'], '/prefix') === false) {
+        return;
+    }
+
+    $space = 'Mgr';
+
+    $arr = explode('/',explode('?',$_SERVER['REQUEST_URI'])[0]);
+    $index = '/' . $arr[2] . '/' . $arr[3];
+
+    $reflectionClass = new ReflectionClass("App\Http\Controllers\{$space}\\". $arr[2] ."Controller");
+    $reflectionMethod = $reflectionClass->getMethod($arr[3]);
+    $doc = $reflectionMethod->getDocComment();
+    preg_match('/@permission(.*?)\n/', $doc, $permission);
+
+    if ($permission && isset($permission[1])) {
+        $permission = trim($permission[1]);
+        if ($permission) {
+            Route::match(['get', 'post'], $index, value(function() use ($arr){
+                return "{$space}\\{$arr[2]}Controller@{$arr[3]}";
+            }))->middleware("permission:{$permission}");
+        } else {
+            Route::match(['get', 'post'], $index, value(function() use ($arr){
+                return "{$space}\\{$arr[2]}Controller@{$arr[3]}";
+            }));
+        }
+    } else {
+        Route::match(['get', 'post'], $index, value(function() use ($arr){
+            return "{$space}\\{$arr[2]}Controller@{$arr[3]}";
+        }));
+    }
+
+});
+```
+大法需要获取路由到的function中的注释，比如：@permission
+
+当然你可以修改，比如@role、@ability，根据自己的想法去自定义
+
+例子：
+```php
+/**
+ * @permission 供应商管理
+ * @return string
+ */
+public function saveDirectProduct() {
+    $field = $this->getField([
+        'direct_link' => 'required|string|min:1',
+    ]);
+}
+```
 
 ### 添加角色
 ```
@@ -57,6 +120,32 @@ php artisan abac.create-table
 ```
 \Abac::addUser2Permission(用户id, 权限id(int)|权限名(string));
 ```
+
+### 删除权限（并删除所有关联关系）
+```
+\Abac::delPermission(权限id|权限名);
+```
+
+### 删除角色（并删除所有关联关系）
+```
+\Abac::delRole(角色id|角色名);
+```
+
+### 移除角色中的权限
+```
+\Abac::removePermissionOfRole(权限i|d权限名, 角色id|角色名);
+```
+
+### 移除用户中独立的权限
+```
+\Abac::removePermissionOfUser(用户id, 权限id|权限名);
+```
+
+### 移除用户的角色
+```
+\Abac::removeRoleOfUser(用户id, 角色id|角色名);
+```
+
 
 ### Blade模板使用
 ```
