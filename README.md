@@ -28,13 +28,13 @@ php artisan abac.create-table
 
 
 ### 中间件使用
-```
+```php
 'permission' => \Abac\Middleware\AbacPermission::class,
 'role' => \Abac\Middleware\AbacRole::class,
 'ability' => \Abac\Middleware\AbacAbility::class,
 ```
 
-```
+```php
 // 路由
 Route::get('/home', 'HomeController@index')->name('home')->middleware("permission:权限名");
 Route::get('/home', 'HomeController@index')->name('home')->middleware("role:角色名");
@@ -44,7 +44,7 @@ Route::get('/home', 'HomeController@index')->name('home')->middleware("ability:�
 
 ### Laravel坑逼路由终极大法，特么我们路由文件一路达到1k行，哦不，是2k行，这个锅Laravel必须得背
 ### 终极大法配合权限管理很容易达到高潮
-```
+```php
 Route::group(['prefix' => 'prefix'],function(){
     if (strlen($_SERVER['REQUEST_URI']) < 4 || strpos($_SERVER['REQUEST_URI'], '/prefix') === false) {
         return;
@@ -97,17 +97,17 @@ public function saveDirectProduct() {
 ```
 
 ### 添加角色
-```
+```php
 \Abac::addRole(角色名);
 ```
 
 ### 添加权限
-```
+```php
 \Abac::addPermission(权限名);
 ```
 
 ### 添加权限到角色中
-```
+```php
 \Abac::addPermission2Role(角色id(int)|角色名(string), 权限id(int)|权限名(string));
 ```
 
@@ -117,38 +117,38 @@ public function saveDirectProduct() {
 ```
 
 ### 单独添加权限给用户
-```
+```php
 \Abac::addUser2Permission(用户id, 权限id(int)|权限名(string));
 ```
 
 ### 删除权限（并删除所有关联关系）
-```
+```php
 \Abac::delPermission(权限id|权限名);
 ```
 
 ### 删除角色（并删除所有关联关系）
-```
+```php
 \Abac::delRole(角色id|角色名);
 ```
 
 ### 移除角色中的权限
-```
+```php
 \Abac::removePermissionOfRole(权限i|d权限名, 角色id|角色名);
 ```
 
 ### 移除用户中独立的权限
-```
+```php
 \Abac::removePermissionOfUser(用户id, 权限id|权限名);
 ```
 
 ### 移除用户的角色
-```
+```php
 \Abac::removeRoleOfUser(用户id, 角色id|角色名);
 ```
 
 
 ### Blade模板使用
-```
+```php
 @role('角色名1|角色名2', true)
     {{'打工是不可能打工的，这辈子不可能打工'}}
 @endrole
