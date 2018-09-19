@@ -16,11 +16,11 @@ php artisan abac.create-table
 
 ### 添加到服务提供者
 1. 在config app.php providers数组中追加
-```
+```php
 \Abac\AbacServiceProvider::class,
 ```
 2. 在config app.php aliases数组中追加
-```
+```php
 'Abac' => \Abac\AbacFacade::class,
 ```
 
