@@ -9,11 +9,6 @@
 composer require ddjuly/abac
 ```
 
-### 创建abac表，默认abac_前缀，当然你也可以改成你自己的，打命令会有提示😑
-```
-php artisan abac.create-table
-```
-
 ### 添加到服务提供者
 1. 在config app.php providers数组中追加
 ```php
@@ -22,6 +17,11 @@ php artisan abac.create-table
 2. 在config app.php aliases数组中追加
 ```php
 'Abac' => \Abac\AbacFacade::class,
+```
+
+### 创建abac表，默认abac_前缀，当然你也可以改成你自己的，打命令会有提示😑
+```
+php artisan abac.create-table
 ```
 
 # 如何使用
@@ -82,6 +82,8 @@ Route::group(['prefix' => 'prefix'],function(){
 大法需要获取路由到的function中的注释，比如：@permission
 
 当然你可以修改，比如@role、@ability，根据自己的想法去自定义
+
+这里有一个需要注意的地方就是，大法路由不能通过URL类来直接生成url，这是一个问题，本银是通过改那该死的源码实现的
 
 例子：
 ```php

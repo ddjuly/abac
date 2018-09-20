@@ -1,4 +1,6 @@
-<?php namespace Zizaco\Entrust\Middleware;
+<?php
+
+namespace Abac\Middleware;
 
 /**
  * This file is part of Entrust,
@@ -47,8 +49,8 @@ class AbacAbility
             $permissions = explode(self::DELIMITER, $permissions);
         }
 
-        if (!is_bool($validateAll)) {
-            $validateAll = false;
+        if ((is_bool($validateAll) && $validateAll) || $validateAll == 'true') {
+            $validateAll = true;
         }
 
         if ($this->auth->guest() || !\Abac::ability($roles, $permissions, $validateAll)) {

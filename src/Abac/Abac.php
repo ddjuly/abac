@@ -22,7 +22,7 @@ class Abac {
     /**
      * current user id
      */
-    public $userId;
+    public $userId = 0;
 
     private $isQuery = false;
     private $roles = [];
@@ -34,7 +34,10 @@ class Abac {
      */
     public function __construct($app) {
         $this->app = $app;
-        $this->userId = $this->app->auth->user()->id;
+        $user = $this->app->auth->user();
+        if ($user && $user->id) {
+            $this->userId = $user->id;
+        }
     }
 
 
@@ -43,7 +46,7 @@ class Abac {
      * @permission
      */
     private function queryInfos() {
-        if (!$this->isQuery) {
+        if (!$this->isQuery && !$this->userId) {
             $this->isQuery = true;
             return;
         }
@@ -71,14 +74,21 @@ class Abac {
      * @param $role int role_id or string role_name
      * @return bool
      */
-    public function hasRole($role)
-    {
+    public function hasRole($role, $validateAll = false) {
         $this->queryInfos();
 
         if (is_string($role)) {
             return in_array($role, $this->roles);
         } else if (is_int($role)) {
             return array_key_exists($role, $this->roles);
+        } else if (is_array($role)) {
+            $same = array_intersect_assoc($role, $this->roles);
+            if ($validateAll && count($same) == count($role)) {
+                return true;
+            }
+            if (count($same) > 0) {
+                return true;
+            }
         }
 
         return false;
@@ -89,8 +99,7 @@ class Abac {
      * @param $permission
      * @return bool
      */
-    public function hasPermission($permission)
-    {
+    public function hasPermission($permission, $validateAll = false) {
         $this->queryInfos();
 
         if (is_string($permission)) {
@@ -108,6 +117,20 @@ class Abac {
             } else {
                 $b = array_key_exists($permission, $this->rolePermissions);
                 return $b;
+            }
+        } else if (is_array($permission)) {
+            $sameUser = array_intersect_assoc($permission, $this->userPermissions);
+            if (!$validateAll && count($sameUser) > 0) {
+                return true;
+            }
+            $sameRole = array_intersect_assoc($permission, $this->rolePermissions);
+            if (!$validateAll && count($sameUser) > 0) {
+                return true;
+            }
+
+            $merge = array_merge($sameUser, $sameRole);
+            if ($validateAll && count($merge) == count($permission)) {
+                return true;
             }
         }
 
@@ -227,20 +250,20 @@ class Abac {
     public function addPermission2Role($permission, $role) {
         $modelP = Helper::model(Config::get('abac.abac_permission', 'abac_permission'), 'pid');
         if (is_int($permission)) {
-            $modelP->where('pid', $permission);
+            $modelP = $modelP->where('pid', $permission);
         } else if (is_string($permission)) {
-            $modelP->where('pname', $permission);
+            $modelP = $modelP->where('pname', $permission);
         }
         $modelP = $modelP->first();
         if (!$modelP) {
             throw new \Exception('permission id is not found!');
         }
 
-        $modelRole = Helper::model(Config::get('abac.abac_user_role', 'abac_user_role'), 'role_id');
+        $modelRole = Helper::model(Config::get('abac.abac_role', 'abac_role'), 'role_id');
         if (is_int($role)) {
-            $modelRole->where('role_id', $role);
+            $modelRole = $modelRole->where('role_id', $role);
         } else if (is_string($role)) {
-            $modelRole->where('role_name', $role);
+            $modelRole = $modelRole->where('role_name', $role);
         }
         $modelRole = $modelRole->first();
         if (!$modelRole) {
@@ -272,11 +295,11 @@ class Abac {
      * @throws \Exception
      */
     public function addUser2Role($user_id, $role) {
-        $modelRole = Helper::model(Config::get('abac.abac_user_role', 'abac_user_role'), 'role_id');
+        $modelRole = Helper::model(Config::get('abac.abac_role', 'abac_role'), 'role_id');
         if (is_int($role)) {
-            $modelRole->where('role_id', $role);
+            $modelRole = $modelRole->where('role_id', $role);
         } else if (is_string($role)) {
-            $modelRole->where('role_name', $role);
+            $modelRole = $modelRole->where('role_name', $role);
         }
         $modelRole = $modelRole->first();
         if (!$modelRole) {
@@ -310,9 +333,9 @@ class Abac {
     public function addUser2Permission($user_id, $permission) {
         $modelP = Helper::model(Config::get('abac.abac_permission', 'abac_permission'), 'pid');
         if (is_int($permission)) {
-            $modelP->where('pid', $permission);
+            $modelP = $modelP->where('pid', $permission);
         } else if (is_string($permission)) {
-            $modelP->where('pname', $permission);
+            $modelP = $modelP->where('pname', $permission);
         }
         $modelP = $modelP->first();
         if (!$modelP) {
@@ -343,13 +366,13 @@ class Abac {
     public function delRole($role) {
         $role_id = $role;
         if (is_string($role)) {
-            $role = Helper::model(Config::get('abac.abac_role', 'abac_role'))->where('role_name', $role)->first();
+            $role = Helper::model(Config::get('abac.abac_role', 'abac_role'), 'role_id')->where('role_name', $role)->first();
             if (!$role) {
                 return false;
             }
             $role_id = $role->role_id;
         } else {
-            $role = Helper::model(Config::get('abac.abac_role', 'abac_role'))->where('role_id', $role)->first();
+            $role = Helper::model(Config::get('abac.abac_role', 'abac_role'), 'role_id')->where('role_id', $role)->first();
             if (!$role) {
                 return false;
             }
@@ -369,11 +392,11 @@ class Abac {
             Helper::model(Config::get('abac.abac_user_role', 'abac_user_role'))
                 ->where('role_id', $role_id)
                 ->delete();
-            DB::commit();
+            \DB::commit();
 
             return true;
         } catch (\Exception $e) {
-            DB::rollback();
+            \DB::rollback();
         }
 
         return false;
@@ -387,7 +410,7 @@ class Abac {
     public function delPermission($permission) {
         $pid = $permission;
         if (is_string($permission)) {
-            $permission = Helper::model(Config::get('abac.abac_permission', 'abac_permission'))
+            $permission = Helper::model(Config::get('abac.abac_permission', 'abac_permission'), 'pid')
                 ->where('pname', $permission)
                 ->first();
             if (!$permission) {
@@ -395,7 +418,7 @@ class Abac {
             }
             $pid = $permission->pid;
         } else {
-            $permission = Helper::model(Config::get('abac.abac_permission', 'abac_permission'))
+            $permission = Helper::model(Config::get('abac.abac_permission', 'abac_permission'), 'pid')
                 ->where('pid', $permission)
                 ->first();
             if (!$permission) {
@@ -417,11 +440,11 @@ class Abac {
             Helper::model(Config::get('abac.abac_user_permission', 'abac_user_permission'))
                 ->where('pid', $pid)
                 ->delete();
-            DB::commit();
+            \DB::commit();
 
             return true;
         } catch (\Exception $e) {
-            DB::rollback();
+            \DB::rollback();
         }
 
         return false;
