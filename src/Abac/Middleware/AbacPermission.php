@@ -28,7 +28,7 @@ class AbacPermission
         \Log::info($permission);
 
         if ($this->auth->guest() || !\Abac::hasPermission($permission)) {
-            abort(404);
+            abort(403);
         }
 
         return $next($request);

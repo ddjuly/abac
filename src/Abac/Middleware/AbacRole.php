@@ -32,7 +32,7 @@ class AbacRole
         \Log::info($role);
 
         if ($this->auth->guest() || !\Abac::hasRole($role)) {
-            abort(404);
+            abort(403);
         }
 
         return $next($request);
